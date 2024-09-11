@@ -22,15 +22,20 @@ export default function AcupunctureGiftCard() {
   const session_id = searchParams.get('session_id')
 
   useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-    if (!key) {
-      console.error('Stripe publishable key is not set');
-      return;
-    }
-    
-    loadStripe(key)
-      .then(setStripePromise)
-      .catch(error => console.error('Error loading Stripe:', error));
+    const loadStripeKey = async () => {
+      try {
+        const response = await fetch('/api/get-stripe-key');
+        const { key } = await response.json();
+        if (!key) throw new Error('No Stripe key returned');
+        
+        const stripe = await loadStripe(key);
+        setStripePromise(stripe);
+      } catch (error) {
+        console.error('Error loading Stripe:', error);
+      }
+    };
+
+    loadStripeKey();
   }, []);
 
   useEffect(() => {
