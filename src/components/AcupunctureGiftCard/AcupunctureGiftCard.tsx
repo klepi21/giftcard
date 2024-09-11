@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf'
 import { Leaf } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import PurchasePage from './PurchasePage'
-import PurchaseSuccessPage from '../../app/success/page'
+import SuccessPage from '../../app/success/SuccessPage'
 
 export default function AcupunctureGiftCard() {
   const [sessions, setSessions] = useState(1)
@@ -90,7 +90,7 @@ export default function AcupunctureGiftCard() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-4xl sm:text-5xl font-bold text-[#8c7a6b] opacity-20">ΔΩΡΟΚΑΡΤΑ</p>
+                <p className="text-4xl sm:text-5xl font-bold text-[#8c7a6b] opacity-20">ΔΩ��ΟΚΑΡΤΑ</p>
               </div>
               <div className="flex justify-between items-end">
                 <p className="text-xs sm:text-sm text-[#5d4c40]">Ισχύει για ένα έτος</p>
@@ -136,13 +136,7 @@ export default function AcupunctureGiftCard() {
   }
 
   return isPurchased ? (
-    <PurchaseSuccessPage 
-      sessions={sessions} 
-      email={email} 
-      giftCardCode={giftCardCode} 
-      GiftCard={GiftCard}
-      handleDownloadPDF={handleDownloadPDF}
-    />
+    <SuccessPage />
   ) : (
     <PurchasePage 
       sessions={sessions} 
