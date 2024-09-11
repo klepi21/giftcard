@@ -6,6 +6,10 @@ import { Leaf } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import PurchasePage from './PurchasePage'
 import SuccessPage from '../../app/success/SuccessPage'
+import { loadStripe } from '@stripe/stripe-js';
+
+// Move this outside of your component
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function AcupunctureGiftCard() {
   const [sessions, setSessions] = useState(1)
@@ -43,6 +47,12 @@ export default function AcupunctureGiftCard() {
   }, [])
 
   const handlePurchase = useCallback(async () => {
+    const stripe = await stripePromise;
+    if (!stripe) {
+      console.error('Stripe failed to load');
+      return;
+    }
+
     // ... handle Stripe payment
 
     if (paymentSuccessful) {
@@ -90,7 +100,7 @@ export default function AcupunctureGiftCard() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-4xl sm:text-5xl font-bold text-[#8c7a6b] opacity-20">ΔΩ��ΟΚΑΡΤΑ</p>
+                <p className="text-4xl sm:text-5xl font-bold text-[#8c7a6b] opacity-20">ΔΩΡΟΚΑΡΤΑ</p>
               </div>
               <div className="flex justify-between items-end">
                 <p className="text-xs sm:text-sm text-[#5d4c40]">Ισχύει για ένα έτος</p>
