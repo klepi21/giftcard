@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+});
 
 export async function POST(request: Request) {
   try {
+    console.log('Stripe Secret Key:', process.env.STRIPE_SECRET_KEY ? 'Set' : 'Not set');
+    
     const { sessions, email } = await request.json();
     
     // Calculate price based on sessions
@@ -44,6 +48,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ id: session.id });
   } catch (err: any) {
+    console.error('Stripe checkout error:', err);
     return NextResponse.json({ statusCode: 500, message: err.message }, { status: 500 });
   }
 }

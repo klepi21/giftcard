@@ -15,6 +15,7 @@ const nextConfig = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname, 'src'),
     };
+    config.resolve.fallback = { fs: false, net: false, tls: false };
     return config;
   },
 }

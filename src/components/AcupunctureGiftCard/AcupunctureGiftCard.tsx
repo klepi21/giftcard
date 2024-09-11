@@ -7,9 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import PurchasePage from './PurchasePage'
 import SuccessPage from '../../app/success/SuccessPage'
 import { loadStripe } from '@stripe/stripe-js';
-
-// Move this outside of your component
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+import { Stripe } from '@stripe/stripe-js';
 
 export default function AcupunctureGiftCard() {
   const [sessions, setSessions] = useState(1)
@@ -18,9 +16,28 @@ export default function AcupunctureGiftCard() {
   const [giftCardCode, setGiftCardCode] = useState('')
   const [isFlipped, setIsFlipped] = useState(false)
   const [paymentSuccessful, setPaymentSuccessful] = useState(false)
+  const [stripePromise, setStripePromise] = useState<Stripe | null>(null);
   const searchParams = useSearchParams()
   const success = searchParams.get('success')
   const session_id = searchParams.get('session_id')
+
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    console.log('Stripe Publishable Key:', key ? 'Set' : 'Not set');
+    
+    if (key) {
+      loadStripe(key)
+        .then(stripe => {
+          console.log('Stripe loaded successfully');
+          setStripePromise(stripe);
+        })
+        .catch(error => {
+          console.error('Error loading Stripe:', error);
+        });
+    } else {
+      console.error('Stripe publishable key is not set');
+    }
+  }, []);
 
   useEffect(() => {
     if (success === 'true' && session_id) {
@@ -47,12 +64,6 @@ export default function AcupunctureGiftCard() {
   }, [])
 
   const handlePurchase = useCallback(async () => {
-    const stripe = await stripePromise;
-    if (!stripe) {
-      console.error('Stripe failed to load');
-      return;
-    }
-
     // ... handle Stripe payment
 
     if (paymentSuccessful) {
