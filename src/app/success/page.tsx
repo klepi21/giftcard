@@ -29,8 +29,16 @@ export default function PurchaseSuccessPage({
   }, [searchParams])
 
   const calculatePrice = (sessions: number) => {
-    // Implement your price calculation logic here
-    return sessions * 50 // Example calculation
+    if (sessions === 1) {
+      return 50;
+    } else if (sessions >= 2 && sessions <= 4) {
+      return sessions * 40;
+    } else if (sessions >= 5 && sessions <= 7) {
+      return Math.round(sessions * 40 * 0.9); // 10% discount
+    } else if (sessions >= 8 && sessions <= 10) {
+      return Math.round(sessions * 40 * 0.8); // 20% discount
+    }
+    return Math.round(sessions * 40 * 0.8);
   }
 
   return (
