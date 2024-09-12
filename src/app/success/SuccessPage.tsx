@@ -8,36 +8,19 @@ export default function SuccessPage() {
   const [sessions, setSessions] = useState(0)
   const [email, setEmail] = useState('')
   const [giftCardCode, setGiftCardCode] = useState('')
-  const [isValid, setIsValid] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const sessionsParam = Number(searchParams.get('sessions')) || 0
-    const emailParam = searchParams.get('email') || ''
-    const giftCardCodeParam = searchParams.get('giftCardCode') || ''
+    setSessions(Number(searchParams.get('sessions')) || 0)
+    setEmail(searchParams.get('email') || '')
+    setGiftCardCode(searchParams.get('giftCardCode') || '')
 
-    // Validate the purchase
-    fetch('/api/validate-purchase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessions: sessionsParam, email: emailParam, giftCardCode: giftCardCodeParam })
+    console.log('Payment successful', { 
+      email: searchParams.get('email'), 
+      sessions: searchParams.get('sessions'), 
+      giftCardCode: searchParams.get('giftCardCode') 
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.valid) {
-        setSessions(sessionsParam)
-        setEmail(emailParam)
-        setGiftCardCode(giftCardCodeParam)
-        setIsValid(true)
-      }
-      setIsLoading(false)
-    })
-    .catch(error => {
-      console.error('Validation error:', error)
-      setIsLoading(false)
-    })
-  }, [])
+  }, [searchParams])
 
   const calculatePrice = (sessions: number) => {
     if (sessions === 1) {
@@ -50,14 +33,6 @@ export default function SuccessPage() {
       return Math.round(sessions * 40 * 0.8); // 20% discount
     }
     return Math.round(sessions * 40 * 0.8);
-  }
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-
-  if (!isValid) {
-    return <div>Invalid purchase. Please contact support.</div>
   }
 
   return (
