@@ -6,7 +6,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 // Initialize Firebase Admin
 if (!getApps().length) {
   initializeApp({
-    credential: cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY as string))
+    credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string))
   });
 }
 

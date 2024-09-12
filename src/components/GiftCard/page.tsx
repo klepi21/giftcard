@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Leaf, Download } from 'lucide-react'
+import { Leaf, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import html2canvas from 'html2canvas'
 import axios from 'axios'; // Add this import
@@ -12,7 +12,7 @@ interface GiftCardProps {
 }
 
 const GiftCard: React.FC<GiftCardProps> = ({ sessions, calculatePrice, giftCardCode, email }) => {
-  const [isFlipped, setIsFlipped] = useState(false)
+  const [currentSide, setCurrentSide] = useState(0) // 0 for front, 1 for back
   const [isEmailSent, setIsEmailSent] = useState(false)
   const frontRef = useRef<HTMLDivElement>(null)
   const backRef = useRef<HTMLDivElement>(null)
@@ -84,8 +84,8 @@ const GiftCard: React.FC<GiftCardProps> = ({ sessions, calculatePrice, giftCardC
     return canvas.toDataURL('image/png')
   }
 
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped)
+  const handleSlide = (direction: 'next' | 'prev') => {
+    setCurrentSide(direction === 'next' ? 1 : 0)
   }
 
   const handleDownload = async () => {
@@ -125,13 +125,21 @@ const GiftCard: React.FC<GiftCardProps> = ({ sessions, calculatePrice, giftCardC
 
   return (
     <>
-      <div className="w-full max-w-sm mx-auto perspective-1000">
-        <div 
-          className={`relative w-full h-48 [transform-style:preserve-3d] transition-all duration-500 ease-in-out ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}
-          onClick={handleFlip}
+      <div className="w-full max-w-sm mx-auto relative flex items-center">
+        <button 
+          className="absolute left-[-40px] bg-white/50 rounded-full p-2 shadow-md"
+          onClick={() => handleSlide('prev')}
+          disabled={currentSide === 0}
         >
-          <div ref={frontRef} className="gift-card-front absolute w-full h-full bg-gradient-to-br from-[#e6d7c3] to-[#d4c3b3] rounded-xl shadow-xl [backface-visibility:hidden]">
-            <div className="p-4 sm:p-6 flex flex-col justify-between h-full">
+          <ChevronLeft className="w-6 h-6 text-[#5d4c40]" />
+        </button>
+        
+        <div className="w-full overflow-hidden rounded-xl shadow-xl">
+          <div 
+            className="flex transition-transform duration-300 ease-in-out"
+            style={{ transform: `translateX(-${currentSide * 100}%)` }}
+          >
+            <div ref={frontRef} className="gift-card-front w-full flex-shrink-0 bg-gradient-to-br from-[#e6d7c3] to-[#d4c3b3] p-4 sm:p-6 flex flex-col">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <div className="flex items-center">
@@ -144,19 +152,16 @@ const GiftCard: React.FC<GiftCardProps> = ({ sessions, calculatePrice, giftCardC
                   <p className="text-xs sm:text-xl font-medium text-[#5d4c40]">
                     {sessions} {sessions === 1 ? 'Συνεδρία' : 'Συνεδρίες'}
                   </p>
-                  
                 </div>
               </div>
-              <div className="text-center">
-                <p className="text-4xl sm:text-5xl font-bold text-[#8c7a6b] opacity-20">ΔΩΡΟΚΑΡΤΑ</p>
+              <div className="text-center flex-grow flex items-center justify-center">
+                <p className="text-4xl sm:text-4xl font-bold text-[#8c7a6b] opacity-20">ΔΩΡΟΚΑΡΤΑ</p>
               </div>
-              <div className="flex justify-between items-end">
+              <div className="flex justify-between items-end mt-auto">
                 <p className="text-xs sm:text-sm text-[#5d4c40]">Ισχύει για ένα έτος</p>
               </div>
             </div>
-          </div>
-          <div ref={backRef} className="gift-card-back absolute w-full h-full bg-[#f0e6d9] rounded-xl shadow-xl [backface-visibility:hidden] [transform:rotateY(180deg)]">
-            <div className="p-4 flex flex-col justify-between h-full">
+            <div ref={backRef} className="gift-card-back w-full flex-shrink-0 bg-[#f0e6d9] p-4">
               <p className="text-[#5d4c40] text-xs">
                 Αυτή η δωροκάρτα δίνει στον κάτοχο {sessions} {sessions > 1 ? 'συνεδρίες' : 'συνεδρία'} βελονισμού.
                 Παρακαλώ παρουσιάστε αυτή την κάρτα ή τον κωδικό παρακάτω κατά την ώρα του ραντεβού σας.
@@ -171,11 +176,21 @@ const GiftCard: React.FC<GiftCardProps> = ({ sessions, calculatePrice, giftCardC
             </div>
           </div>
         </div>
+        
+        <button 
+          className="absolute right-[-40px] bg-white/50 rounded-full p-2 shadow-md"
+          onClick={() => handleSlide('next')}
+          disabled={currentSide === 1}
+        >
+          <ChevronRight className="w-6 h-6 text-[#5d4c40]" />
+        </button>
       </div>
-      <div className="mt-4  text-xs text-[#5d4c40]">
-        <p>* Αγγίξτε την κάρτα δώρου για να δείτε περισσότερες λεπτομέρειες</p>
+      
+      <div className="mt-4 text-xs text-[#5d4c40]">
+        <p>* Χρησιμοποιήστε τα βέλη για να δείτε και τις δύο πλευρές της κάρτας δώρου</p>
         <p>** Για να ισχύει η κάρτα δώρου, πρέπει να κλείσετε ραντεβού με τον γιατρό είτε μέσω doctoranytime είτε μέσω τηλεφώνου</p>
       </div>
+      
       <div className="mt-6 text-center">
         <button
           onClick={handleDownload}

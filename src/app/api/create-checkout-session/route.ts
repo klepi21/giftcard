@@ -1,52 +1,44 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe';
+import { db } from '../../../lib/firebaseAdmin'; // Adjust the path as needed
+// Remove this line:
+// import { db } from '../../../lib/firebase';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { App } from 'firebase-admin/app';
 
 // Replace the Firebase initialization code with this:
+let adminDb: FirebaseFirestore.Firestore;
+
 if (!getApps().length) {
   try {
-    if (!process.env.FIREBASE_ADMIN_KEY) {
-      throw new Error('FIREBASE_ADMIN_KEY is not set');
-    }
+    console.log('Initializing Firebase Admin...');
+    const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY || '{}');
     
-    console.log('Raw FIREBASE_ADMIN_KEY:', process.env.FIREBASE_ADMIN_KEY);
-    
-    // Remove surrounding single quotes and unescape the JSON string
-    const cleanedKey = process.env.FIREBASE_ADMIN_KEY.replace(/^'|'$/g, '').replace(/\\"/g, '"');
-    
-    console.log('Cleaned FIREBASE_ADMIN_KEY:', cleanedKey);
-    
-    let adminKey;
-    try {
-      adminKey = JSON.parse(cleanedKey);
-    } catch (parseError) {
-      console.error('Parse error:', parseError);
-      throw new Error(`Failed to parse FIREBASE_ADMIN_KEY: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
-    }
+    console.log('Project ID:', serviceAccount.project_id);
+    console.log('Client Email:', serviceAccount.client_email);
+    console.log('Private Key length:', serviceAccount.private_key?.length);
 
-    if (!adminKey.project_id || !adminKey.private_key) {
-      throw new Error('Admin key is missing required fields');
-    }
-
-    // Ensure private_key is properly formatted
-    adminKey.private_key = adminKey.private_key.replace(/\\n/g, '\n');
-
-    initializeApp({
-      credential: cert(adminKey as any)
+    const app = initializeApp({
+      credential: cert({
+        projectId: serviceAccount.project_id,
+        clientEmail: serviceAccount.client_email,
+        privateKey: serviceAccount.private_key?.replace(/\\n/g, '\n'),
+      }),
     });
-  } catch (error: unknown) {
-    console.error('Failed to initialize Firebase Admin:', error);
-    if (error instanceof Error) {
-      throw new Error(`Firebase Admin initialization failed: ${error.message}`);
-    } else {
-      throw new Error('Firebase Admin initialization failed: Unknown error');
-    }
+
+    adminDb = getFirestore(app);
+    console.log('Firebase Admin initialized successfully');
+  } catch (error) {
+    console.error('Firebase Admin initialization error:', error);
+    throw error;
   }
+} else {
+  adminDb = getFirestore();
 }
 
-const adminDb = getFirestore();
+// Log to verify Firestore instance
+console.log('Firestore instance:', adminDb ? 'Created' : 'Failed to create');
 
 declare global {
   var firebaseAdmin: App | undefined;
@@ -115,7 +107,13 @@ export async function POST(request: Request) {
     };
 
     const price = calculatePrice(sessions);
-    const giftCardCode = await generateGiftCardCode();
+    let giftCardCode;
+    try {
+      giftCardCode = await generateAndReserveGiftCardCode(email);
+    } catch (giftCardError) {
+      console.error('Gift card generation error:', giftCardError);
+      throw giftCardError; // Re-throw the error with the detailed message
+    }
 
     console.log('Creating Stripe checkout session');
     const session = await stripe.checkout.sessions.create({
@@ -160,18 +158,42 @@ export async function POST(request: Request) {
   }
 }
 
-async function generateGiftCardCode() {
-  const codesRef = adminDb.collection('giftCardCodes');
-  const q = codesRef.where('used', '==', false);
-  const querySnapshot = await q.get();
+async function generateAndReserveGiftCardCode(email: string) {
+  try {
+    console.log('Attempting to generate and reserve gift card code...');
+    
+    const codesRef = db.collection('giftCardCodes');
+    const q = codesRef.where('used', '==', false).limit(1);
+    
+    console.log('Executing Firestore query...');
+    const querySnapshot = await q.get();
+    
+    console.log('Query executed. Empty?', querySnapshot.empty);
 
-  if (querySnapshot.empty) {
-    throw new Error('No available gift card codes');
+    if (querySnapshot.empty) {
+      throw new Error('No available gift card codes');
+    }
+
+    const doc = querySnapshot.docs[0];
+    const giftCardCode = doc.data().code;
+
+    // Update the document to reserve it and mark it as used
+    await doc.ref.update({
+      reservedFor: email,
+      reservedAt: new Date(),
+      used: true,
+      usedBy: email,
+      usedAt: new Date()
+    });
+
+    console.log('Reserved and marked as used gift card code:', giftCardCode);
+    return giftCardCode;
+  } catch (error) {
+    console.error('Error in generateAndReserveGiftCardCode:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate and reserve gift card code: ${error.message}`);
+    } else {
+      throw new Error('Failed to generate and reserve gift card code: Unknown error');
+    }
   }
-
-  const availableCodes = querySnapshot.docs;
-  const randomIndex = Math.floor(Math.random() * availableCodes.length);
-  const randomDoc = availableCodes[randomIndex];
-
-  return randomDoc.data().code;
 }

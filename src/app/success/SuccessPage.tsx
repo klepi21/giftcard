@@ -2,32 +2,68 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+
 import GiftCard from '../../components/GiftCard/page'
+import Benefits from '../acupuncture-benefits/page'
 
-export default function SuccessPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SuccessPageContent />
-    </Suspense>
-  )
-}
-
-function SuccessPageContent() {
+function SuccessContent() {
   const [sessions, setSessions] = useState(0)
   const [email, setEmail] = useState('')
   const [giftCardCode, setGiftCardCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    setSessions(Number(searchParams.get('sessions')) || 0)
-    setEmail(searchParams.get('email') || '')
-    setGiftCardCode(searchParams.get('giftCardCode') || '')
+    const fetchData = async () => {
+      const sessionsParam = searchParams.get('sessions')
+      const emailParam = searchParams.get('email')
+      const giftCardCodeParam = searchParams.get('giftCardCode')
 
-    console.log('Payment successful', { 
-      email: searchParams.get('email'), 
-      sessions: searchParams.get('sessions'), 
-      giftCardCode: searchParams.get('giftCardCode') 
-    })
+      // Add these console logs
+      console.log('Client-side email:', emailParam);
+      console.log('Client-side giftCardCode:', giftCardCodeParam);
+
+      if (!sessionsParam || !emailParam || !giftCardCodeParam) {
+        setError('Invalid request parameters')
+        setIsLoading(false)
+        return
+      }
+
+      setSessions(Number(sessionsParam))
+      setEmail(emailParam)
+      setGiftCardCode(giftCardCodeParam)
+
+      try {
+        console.log('Sending verification request to API');
+        const response = await fetch('/api/verify-gift-card', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ giftCardCode: giftCardCodeParam, email: emailParam }),
+        });
+
+        console.log('Received response from API');
+        const data = await response.json();
+        console.log('API response:', data);
+        
+        if (!response.ok) {
+          console.log('API error:', data.error);
+          setError(data.error === 'Invalid gift card code' ? "You tried to steal, not fair!" : data.error);
+        } else {
+          console.log('Gift card verified successfully');
+        }
+      } catch (error) {
+        console.error('Error during API call:', error);
+        setError('An error occurred while verifying the gift card');
+      }
+
+      setIsLoading(false)
+    }
+
+    fetchData()
   }, [searchParams])
 
   const calculatePrice = (sessions: number) => {
@@ -43,6 +79,19 @@ function SuccessPageContent() {
     return Math.round(sessions * 40 * 0.8);
   }
 
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-xl font-bold mb-4">Error</h1>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-xl font-bold mb-4">Ευχαριστούμε για την αγορά σας!</h1>
@@ -54,7 +103,16 @@ function SuccessPageContent() {
           giftCardCode={giftCardCode}
           email={email}
         />
+        <Benefits />
       </div>
     </div>
+  )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Φόρτωση...</div>}>
+      <SuccessContent />
+    </Suspense>
   )
 }
