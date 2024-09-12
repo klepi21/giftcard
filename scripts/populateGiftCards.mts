@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, cert,getApps} from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin
-initializeApp({
-  credential: cert('giftcard-809f3-firebase-adminsdk-p5x40-b8707e9ab0.json'),
-});
+if (!getApps().length) {
+  initializeApp({
+    credential: cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY as string))
+  });
+}
 
 // Now you can use Firebase services
 const db = getFirestore();

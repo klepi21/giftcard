@@ -1,10 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import GiftCard from '../../components/GiftCard/page'
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessPageContent />
+    </Suspense>
+  )
+}
+
+function SuccessPageContent() {
   const [sessions, setSessions] = useState(0)
   const [email, setEmail] = useState('')
   const [giftCardCode, setGiftCardCode] = useState('')
@@ -44,7 +52,7 @@ export default function SuccessPage() {
           sessions={sessions}
           calculatePrice={calculatePrice}
           giftCardCode={giftCardCode}
-          email={email} // Add this prop
+          email={email}
         />
       </div>
     </div>

@@ -4,16 +4,34 @@ import Stripe from 'stripe';
 // import { db } from '../../../lib/firebase';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import path from 'path';
 import { App } from 'firebase-admin/app';
 
-// Assuming your JSON file is in the root of your project
-const serviceAccountPath = path.join(process.cwd(), 'giftcard-809f3-firebase-adminsdk-p5x40-b8707e9ab0.json');
-
+// Replace the Firebase initialization code with this:
 if (!getApps().length) {
   try {
+    if (!process.env.FIREBASE_ADMIN_KEY) {
+      throw new Error('FIREBASE_ADMIN_KEY is not set');
+    }
+    
+    let adminKey;
+    try {
+      // Remove surrounding single quotes and unescape double quotes
+      const cleanedKey = process.env.FIREBASE_ADMIN_KEY.replace(/^'|'$/g, '').replace(/\\"/g, '"');
+      adminKey = JSON.parse(cleanedKey);
+    } catch (parseError) {
+      console.error('Failed to parse FIREBASE_ADMIN_KEY:', parseError);
+      throw new Error('Failed to parse FIREBASE_ADMIN_KEY');
+    }
+
+    if (!adminKey.project_id || !adminKey.private_key) {
+      throw new Error('Admin key is missing required fields');
+    }
+
+    // Ensure private_key is properly formatted
+    adminKey.private_key = adminKey.private_key.replace(/\\n/g, '\n');
+
     initializeApp({
-      credential: cert(serviceAccountPath)
+      credential: cert(adminKey as any)
     });
   } catch (error: unknown) {
     console.error('Failed to initialize Firebase Admin:', error);
