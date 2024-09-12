@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe';
-// Remove this line:
-// import { db } from '../../../lib/firebase';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { App } from 'firebase-admin/app';
@@ -13,14 +11,19 @@ if (!getApps().length) {
       throw new Error('FIREBASE_ADMIN_KEY is not set');
     }
     
+    console.log('Raw FIREBASE_ADMIN_KEY:', process.env.FIREBASE_ADMIN_KEY);
+    
+    // Remove surrounding single quotes and unescape the JSON string
+    const cleanedKey = process.env.FIREBASE_ADMIN_KEY.replace(/^'|'$/g, '').replace(/\\"/g, '"');
+    
+    console.log('Cleaned FIREBASE_ADMIN_KEY:', cleanedKey);
+    
     let adminKey;
     try {
-      // Remove surrounding single quotes and unescape double quotes
-      const cleanedKey = process.env.FIREBASE_ADMIN_KEY.replace(/^'|'$/g, '').replace(/\\"/g, '"');
       adminKey = JSON.parse(cleanedKey);
     } catch (parseError) {
-      console.error('Failed to parse FIREBASE_ADMIN_KEY:', parseError);
-      throw new Error('Failed to parse FIREBASE_ADMIN_KEY');
+      console.error('Parse error:', parseError);
+      throw new Error(`Failed to parse FIREBASE_ADMIN_KEY: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
 
     if (!adminKey.project_id || !adminKey.private_key) {
